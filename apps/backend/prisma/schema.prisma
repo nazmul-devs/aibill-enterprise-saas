@@ -1,0 +1,108 @@
+datasource db {
+    provider = "postgresql"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model Tenant {
+    id        String    @id @default(uuid())
+    name      String    @db.VarChar(255)
+    slug      String    @unique @db.VarChar(255)
+    isActive  Boolean   @default(true)
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    users     User[]
+    invoices  Invoice[]
+    ledgers   Ledger[]
+}
+
+model User {
+    id        String   @id @default(uuid())
+    tenantId  String
+    tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    email     String   @db.VarChar(255)
+    password  String   @db.VarChar(255)
+    firstName String?  @db.VarChar(100)
+    lastName  String?  @db.VarChar(100)
+    isActive  Boolean  @default(true)
+    roleId    String
+    role      Role     @relation(fields: [roleId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([tenantId, email])
+    @@index([tenantId])
+}
+
+model Role {
+    id          String           @id @default(uuid())
+    name        String           @unique @db.VarChar(100)
+    description String?          @db.VarChar(255)
+    createdAt   DateTime         @default(now())
+    updatedAt   DateTime         @updatedAt
+    users       User[]
+    permissions RolePermission[]
+}
+
+model Permission {
+    id        String           @id @default(uuid())
+    action    String           @unique @db.VarChar(100) // e.g., "invoice:create", "report:view"
+    module    String           @db.VarChar(100) // e.g., "Invoices", "Accounting"
+    createdAt DateTime         @default(now())
+    roles     RolePermission[]
+}
+
+// Junction Table for Many-to-Many Relation between Roles and Permissions
+model RolePermission {
+    roleId       String
+    role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    permissionId String
+    permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+    @@id([roleId, permissionId])
+}
+
+model Invoice {
+    id          String       @id @default(uuid())
+    tenantId    String
+    tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    invoiceNo   String       @db.VarChar(100)
+    amount      Decimal      @db.Decimal(12, 2) // Guard against floating point binary inaccuracies
+    tax         Decimal      @db.Decimal(12, 2)
+    status      String       @default("PENDING") @db.VarChar(50) // PENDING, PAID, VOID
+    issuedAt    DateTime     @default(now())
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    auditResult AuditResult?
+
+    @@unique([tenantId, invoiceNo])
+    @@index([tenantId, status])
+}
+
+model Ledger {
+    id          String   @id @default(uuid())
+    tenantId    String
+    tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    accountName String   @db.VarChar(100) // e.g., "Accounts Receivable", "Revenue", "Tax Output"
+    debit       Decimal  @db.Decimal(12, 2)
+    credit      Decimal  @db.Decimal(12, 2)
+    reference   String?  @db.VarChar(255) // Reference to Invoice ID or Void Token
+    createdAt   DateTime @default(now())
+
+    @@index([tenantId, createdAt])
+}
+
+model AuditResult {
+    id         String   @id @default(uuid())
+    invoiceId  String   @unique
+    invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+    riskScore  Int // Range 0 - 100 calculated by OpenAI Engine
+    riskStatus String   @db.VarChar(50) // LOW, MEDIUM, HIGH
+    analysis   String   @db.Text
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+
+    @@index([riskStatus])
+}

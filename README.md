@@ -31,7 +31,7 @@ graph TD
 *   **DevOps & Infrastructure:** Docker & Docker-Compose, Linux/VPS, Nginx Reverse Proxy, GitHub Actions.
 
 ```text
-aibill-core-monorepo/
+aibill-enterprise-saas/
 ├── apps/
 │   ├── backend/               # Node.js + Express + TypeScript Core Engine
 │   ├── saas-admin/            # Next.js Dashboard for Super Admin (Tenant management)
@@ -49,8 +49,8 @@ Make sure you have **Docker** and **Docker-Compose** installed on your system.
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com
-   cd aibill-core-monorepo
+   git clone https://github.com/nazmul-devs/aibill-enterprise-saas
+   cd aibill-enterprise-saas
    ```
 
 2. Create a `.env` file inside the `apps/backend/` directory and populate your OpenAI secret token:
